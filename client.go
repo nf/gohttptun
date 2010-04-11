@@ -36,14 +36,20 @@ func writeLoop(w io.Writer, c chan []byte) {
 	}
 }
 
+func chanWrap(rw io.ReadWriter) (in, out chan []byte) {
+	in, out = make(chan []byte), make(chan []byte)
+	go readLoop(rw, in)
+	go writeLoop(rw, out)
+	return
+}
+
 func main() {
 	conn, err := net.Dial("tcp", "", hostport)
 	if err != nil {
 		panic(err)
 	}
-	ch := make(chan []byte)
-	enc := hex.Encode(ch)
-	go readLoop(conn, ch)
-	writeLoop(conn, enc)
-
+	in, out := chanWrap(conn)
+	for item := range hex.Encode(in) {
+		out <- item
+	}
 }
