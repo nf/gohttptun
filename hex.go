@@ -2,8 +2,8 @@ package hex
 
 var hexDigits = []byte("0123456789ABCDEF")
 
-func Encode(in chan []byte) (out chan []byte) {
-	out = make(chan []byte)
+func Encode(in <-chan []byte) (<-chan []byte) {
+	out := make(chan []byte)
 	go func() {
 		for i := range in {
 			o := make([]byte, len(i)*2)
@@ -15,7 +15,7 @@ func Encode(in chan []byte) (out chan []byte) {
 		}
 		close(out)
 	}()
-	return
+	return out
 }
 
 func nibToByte(b byte) byte {
@@ -27,8 +27,8 @@ func nibToByte(b byte) byte {
 	return 0
 }
 
-func Decode(in chan[]byte) (out chan []byte) {
-	out = make(chan []byte)
+func Decode(in <-chan []byte) (<-chan []byte) {
+	out := make(chan []byte)
 	go func() {
 		for i := range in {
 			o := make([]byte, len(i)/2)
@@ -39,5 +39,5 @@ func Decode(in chan[]byte) (out chan []byte) {
 		}
 		close(out)
 	}()
-	return
+	return out
 }

@@ -12,7 +12,7 @@ const (
 	readTimeout = 100
 )
 
-func readLoop(r io.Reader, c chan []byte) {
+func readLoop(r io.Reader, c chan<- []byte) {
 	for !closed(c) {
 		b := make([]byte, bufSize)
 		n, err := r.Read(b)
@@ -23,7 +23,7 @@ func readLoop(r io.Reader, c chan []byte) {
 	}
 }
 
-func writeLoop(w io.Writer, c chan []byte) {
+func writeLoop(w io.Writer, c <-chan []byte) {
 	for !closed(c) {
 		b := <-c
 		if len(b) == 0 {
@@ -36,11 +36,11 @@ func writeLoop(w io.Writer, c chan []byte) {
 	}
 }
 
-func chanWrap(rw io.ReadWriter) (in, out chan []byte) {
-	in, out = make(chan []byte), make(chan []byte)
+func chanWrap(rw io.ReadWriter) (<-chan []byte, chan<- []byte) {
+	in, out := make(chan []byte), make(chan []byte)
 	go readLoop(rw, in)
 	go writeLoop(rw, out)
-	return
+	return in, out
 }
 
 func main() {
