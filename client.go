@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"./hex"
 	"io"
 	"net"
+	"os"
 )
 
 const (
@@ -41,6 +43,36 @@ func chanWrap(rw io.ReadWriter) (<-chan []byte, chan<- []byte) {
 	go readLoop(rw, in)
 	go writeLoop(rw, out)
 	return in, out
+}
+
+type buffer struct {
+	readBuf chan []byte
+	readCount chan int
+}
+
+func NewBuffer(in <-chan []byte) (buf *buffer) {
+	buf = &buffer{make(chan []byte), make(chan int)}
+	bb := bytes.NewBuffer([]byte{})
+	go func() {
+		for {
+			select {
+			case b := <-buf.readBuf:
+				if n, err := bb.Read(b); err == nil {
+					buf.readCount <- n
+				}
+			case b := <-in:
+				if _, err := bb.Write(b); err != nil {
+					// erk
+				}
+			}
+		}
+	}()
+	return
+}
+
+func (buf *buffer) Read(b []byte) (int, os.Error) {
+	buf.readBuf <- b
+	return <-buf.readCount, nil
 }
 
 func main() {
