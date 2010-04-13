@@ -58,10 +58,9 @@ func readLoop(r io.Reader, c chan<- []byte, bufSize int) {
 }
 
 func writeLoop(w io.Writer, c <-chan []byte) {
-	for !closed(c) {
-		b := <-c
+	for b := range c {
 		if len(b) == 0 {
-			return
+			continue
 		}
 		_, err := w.Write(b)
 		if err != nil {
