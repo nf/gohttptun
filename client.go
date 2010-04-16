@@ -2,36 +2,13 @@ package main
 
 import (
 	"bytes"
-	"bufio"
-	"fmt"
 	"http"
 	"io"
 	"net"
 	"time"
 )
 
-const (
-	bufSize = 1024
-	readTimeout = 100e6
-)
-
-func server(destAddr, httpAddr string) {
-	conn, err := net.Dial("tcp", "", destAddr)
-	conn.SetReadTimeout(readTimeout)
-	if err != nil {
-		panic(err)
-	}
-
-	http.HandleFunc("/", func(c *http.Conn, r *http.Request) {
-		// pull data from the body and copy it to the conn
-		io.Copy(conn, r.Body)
-		r.Body.Close()
-		// read out of the buffer and write it to conn
-		c.SetHeader("Content-type", "application/octet-stream")
-		io.Copy(c, conn)
-	})
-	http.ListenAndServe(httpAddr, nil)
-}
+const bufSize = 1024
 
 func client(listenAddr, destAddr string) {
 	listener, err := net.Listen("tcp", listenAddr)
@@ -67,24 +44,13 @@ func client(listenAddr, destAddr string) {
 		select {
 		case <-tick.C:
 			// write buf to new http request
-			httpConn, err := net.Dial("tcp", "", destAddr)
+			resp, err := http.Post("http://"+destAddr+"/","application/octet-stream",buf)
 			if err != nil {
-				println("Couldn't connect to server")
+				println(err.String())
 				continue
 			}
-			fmt.Fprintln(httpConn, "POST / HTTP/1.1")
-			fmt.Fprintln(httpConn, "Content-Type: application/octet-stream")
-			fmt.Fprintln(httpConn, "Content-Length: ", buf.Len())
-			fmt.Fprintln(httpConn)
-			buf.WriteTo(httpConn)
 
 			// write http response response to conn
-			httpBuf := bufio.NewReader(httpConn)
-			resp, err := http.ReadResponse(httpBuf, "POST")
-			if err != nil {
-				println("Couldn't parse server response")
-				continue
-			}
 			io.Copy(conn, resp.Body)
 			resp.Body.Close()
 		case b := <-read:
@@ -94,4 +60,5 @@ func client(listenAddr, destAddr string) {
 }
 
 func main() {
+	client(":2222", "127.0.0.1:9090")
 }
