@@ -1,33 +1,52 @@
 package main
 
 import (
-	"bytes"
 	"http"
 	"io"
 	"net"
-	"time"
+	"os"
 )
 
 const readTimeout = 100e6
 
-func server(destAddr, httpAddr string) {
-	conn, err := net.Dial("tcp", "", destAddr)
+var conn net.Conn
+var destAddr string
+
+func connect() (err os.Error) {
+	if conn != nil {
+		return
+	}
+	conn, err = net.Dial("tcp", "", destAddr)
 	if err != nil {
-		panic(err)
+		println(err.String())
+		return
 	}
 	conn.SetReadTimeout(readTimeout)
+	return
+}
 
-	http.HandleFunc("/", func(c *http.Conn, r *http.Request) {
-		// pull data from the body and copy it to the conn
-		io.Copy(conn, r.Body)
-		r.Body.Close()
-		// read out of the buffer and write it to conn
-		c.SetHeader("Content-type", "application/octet-stream")
-		io.Copy(c, conn)
-	})
+func handler(c *http.Conn, r *http.Request) {
+	if err := connect(); err != nil {
+		return
+	}
+	// pull data from the body and copy it to the conn
+	_, err := io.Copy(conn, r.Body)
+	r.Body.Close()
+	if err == os.EOF {
+		conn = nil
+		return
+	}
+	// read out of the buffer and write it to conn
+	c.SetHeader("Content-type", "application/octet-stream")
+	io.Copy(c, conn)
+}
+
+func server(dest, httpAddr string) {
+	destAddr = dest
+	http.HandleFunc("/", handler)
 	http.ListenAndServe(httpAddr, nil)
 }
 
 func main() {
-	server("127.0.0.1:22", ":9090")
+	server("10.1.1.1:22", ":9090")
 }

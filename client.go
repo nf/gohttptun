@@ -9,6 +9,22 @@ import (
 )
 
 const bufSize = 1024
+func makeReadChan(r io.Reader) chan []byte {
+	read := make(chan []byte)
+	go func() {
+		for {
+			b := make([]byte, bufSize)
+			n, err := r.Read(b)
+			if err != nil {
+				return
+			}
+			if n > 0 {
+				read <- b[0:n]
+			}
+		}
+	}()
+	return read
+}
 
 func client(listenAddr, destAddr string) {
 	listener, err := net.Listen("tcp", listenAddr)
@@ -23,22 +39,7 @@ func client(listenAddr, destAddr string) {
 
 	// ticker to set a rate at which to hit the server
 	tick := time.NewTicker(500e6)
-
-	// create a read channel
-	read := make(chan []byte)
-	go func() {
-		for {
-			b := make([]byte, bufSize)
-			n, err := conn.Read(b)
-			if err != nil {
-				return
-			}
-			if n > 0 {
-				read <- b[0:n]
-			}
-		}
-	}()
-
+	read := makeReadChan(conn)
 	buf := bytes.NewBuffer([]byte{})
 	for {
 		select {
