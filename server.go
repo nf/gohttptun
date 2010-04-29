@@ -8,11 +8,12 @@ import (
 	"log"
 	"net"
 	"os"
+	"rand"
 )
 
 const (
 	readTimeout = 100e6
-	keyLen = 6
+	keyLen = 64
 )
 
 type proxy struct {
@@ -45,7 +46,7 @@ func (p *proxy) handle(pp proxyPacket) {
 	pp.r.Body.Close()
 	if err == os.EOF {
 		p.conn = nil
-		log.Stderr("eof", pp.key)
+		log.Stderr("eof", p.key)
 		return
 	}
 	// read out of the buffer and write it to conn
@@ -73,8 +74,7 @@ func createHandler(c *http.Conn, r *http.Request) {
 		return
 	}
 
-	// TODO: generate key
-	key := "abcdef"
+	key := genKey()
 
 	p, err := NewProxy(key, string(destAddr))
 	if err != nil {
@@ -112,7 +112,7 @@ func proxyMuxer() {
 	}
 }
 
-var httpAddr = flag.String("http", ":2222", "http listen address")
+var httpAddr = flag.String("http", ":8888", "http listen address")
 
 func main() {
 	flag.Parse()
@@ -124,3 +124,10 @@ func main() {
 	http.ListenAndServe(*httpAddr, nil)
 }
 
+func genKey() string {
+	key := make([]byte, keyLen)
+	for i :=0; i < keyLen; i++ {
+		key[i] = byte(rand.Int())
+	}
+	return string(key)
+}
