@@ -17,6 +17,7 @@ var (
 	listenAddr = flag.String("listen", ":2222", "local listen address")
 	httpAddr = flag.String("http", "127.0.0.1:8888", "remote tunnel server")
 	destAddr = flag.String("dest", "127.0.0.1:22", "tunnel destination")
+	tickInterval = flag.Int("tick", 250, "update interval (msec)")
 )
 
 // take a reader, and turn it into a channel of bufSize chunks of []byte
@@ -68,7 +69,7 @@ func main() {
 	log.Stderr("Connected, key", key)
 
 	// ticker to set a rate at which to hit the server
-	tick := time.NewTicker(500e6)
+	tick := time.NewTicker(int64(*tickInterval)*1e6)
 	read := makeReadChan(conn, bufSize)
 	buf.Reset()
 	for {
