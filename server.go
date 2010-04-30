@@ -13,18 +13,18 @@ import (
 
 const (
 	readTimeout = 100e6
-	keyLen = 64
+	keyLen      = 64
 )
 
 type proxy struct {
-	C chan proxyPacket
-	key string
+	C    chan proxyPacket
+	key  string
 	conn net.Conn
 }
 
 type proxyPacket struct {
-	c *http.Conn
-	r *http.Request
+	c    *http.Conn
+	r    *http.Request
 	done chan bool
 }
 
@@ -106,7 +106,7 @@ func proxyMuxer() {
 			}
 			// handle
 			p.handle(pp)
-		case p:= <-createQueue:
+		case p := <-createQueue:
 			proxyMap[p.key] = p
 		}
 	}
@@ -126,7 +126,7 @@ func main() {
 
 func genKey() string {
 	key := make([]byte, keyLen)
-	for i :=0; i < keyLen; i++ {
+	for i := 0; i < keyLen; i++ {
 		key[i] = byte(rand.Int())
 	}
 	return string(key)
