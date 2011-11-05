@@ -54,7 +54,7 @@ func main() {
 	buf := new(bytes.Buffer)
 
 	// initiate new session and read key
-	log.Stderr("Attempting connect", *destAddr)
+	log.Println("Attempting connect", *destAddr)
 	buf.Write([]byte(*destAddr))
 	resp, err := http.Post(
 		"http://"+*httpAddr+"/create",
@@ -66,7 +66,7 @@ func main() {
 	key, _ := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
 
-	log.Stderr("Connected, key", key)
+	log.Println("ResponseWriterected, key", key)
 
 	// ticker to set a rate at which to hit the server
 	tick := time.NewTicker(int64(*tickInterval) * 1e6)
@@ -83,7 +83,7 @@ func main() {
 				"application/octet-stream",
 				req)
 			if err != nil {
-				log.Stderr(err.String())
+				log.Println(err.String())
 				continue
 			}
 			// write http response response to conn

@@ -23,34 +23,34 @@ type proxy struct {
 }
 
 type proxyPacket struct {
-	c    *http.Conn
+	c    http.ResponseWriter
 	r    *http.Request
 	done chan bool
 }
 
 func NewProxy(key, destAddr string) (p *proxy, err os.Error) {
 	p = &proxy{C: make(chan proxyPacket), key: key}
-	log.Stderr("Attempting connect", destAddr)
-	p.conn, err = net.Dial("tcp", "", destAddr)
+	log.Println("Attempting connect", destAddr)
+	p.conn, err = net.Dial("tcp", destAddr)
 	if err != nil {
 		return
 	}
 	p.conn.SetReadTimeout(readTimeout)
-	log.Stderr("Connected", destAddr)
+	log.Println("ResponseWriterected", destAddr)
 	return
 }
 
 func (p *proxy) handle(pp proxyPacket) {
-	// read from the request body and write to the Conn
+	// read from the request body and write to the ResponseWriter
 	_, err := io.Copy(p.conn, pp.r.Body)
 	pp.r.Body.Close()
 	if err == os.EOF {
 		p.conn = nil
-		log.Stderr("eof", p.key)
+		log.Println("eof", p.key)
 		return
 	}
 	// read out of the buffer and write it to conn
-	pp.c.SetHeader("Content-type", "application/octet-stream")
+	pp.c.Header().Set("Content-type", "application/octet-stream")
 	io.Copy(pp.c, p.conn)
 	pp.done <- true
 }
@@ -58,13 +58,13 @@ func (p *proxy) handle(pp proxyPacket) {
 var queue = make(chan proxyPacket)
 var createQueue = make(chan *proxy)
 
-func handler(c *http.Conn, r *http.Request) {
+func handler(c http.ResponseWriter, r *http.Request) {
 	pp := proxyPacket{c, r, make(chan bool)}
 	queue <- pp
 	<-pp.done // wait until done before returning
 }
 
-func createHandler(c *http.Conn, r *http.Request) {
+func createHandler(c http.ResponseWriter, r *http.Request) {
 	// read destAddr
 	destAddr, err := ioutil.ReadAll(r.Body)
 	r.Body.Close()
@@ -95,13 +95,13 @@ func proxyMuxer() {
 			// read key
 			n, err := pp.r.Body.Read(key)
 			if n != keyLen || err != nil {
-				log.Stderr("Couldn't read key", key)
+				log.Println("Couldn't read key", key)
 				continue
 			}
 			// find proxy
 			p, ok := proxyMap[string(key)]
 			if !ok {
-				log.Stderr("Couldn't find proxy", key)
+				log.Println("Couldn't find proxy", key)
 				continue
 			}
 			// handle
