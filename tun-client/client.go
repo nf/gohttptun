@@ -3,11 +3,11 @@ package main
 import (
 	"bytes"
 	"flag"
-	"http"
 	"io"
 	"io/ioutil"
 	"log"
 	"net"
+	"net/http"
 	"time"
 )
 
@@ -40,21 +40,24 @@ func makeReadChan(r io.Reader, bufSize int) chan []byte {
 
 func main() {
 	flag.Parse()
+	log.SetPrefix("httptun.c: ")
 
 	listener, err := net.Listen("tcp", *listenAddr)
 	if err != nil {
 		panic(err)
 	}
+	log.Println("listen", *listenAddr)
 
 	conn, err := listener.Accept()
 	if err != nil {
 		panic(err)
 	}
+	log.Println("accept conn", "localAddr.", conn.LocalAddr(), "remoteAddr.", conn.RemoteAddr())
 
 	buf := new(bytes.Buffer)
 
 	// initiate new session and read key
-	log.Println("Attempting connect", *destAddr)
+	log.Println("Attempting connect HttpTun Server.", *httpAddr, "for dest.", *destAddr)
 	buf.Write([]byte(*destAddr))
 	resp, err := http.Post(
 		"http://"+*httpAddr+"/create",
@@ -69,7 +72,7 @@ func main() {
 	log.Println("ResponseWriterected, key", key)
 
 	// ticker to set a rate at which to hit the server
-	tick := time.NewTicker(int64(*tickInterval) * 1e6)
+	tick := time.NewTicker(time.Duration(int64(*tickInterval)) * time.Millisecond)
 	read := makeReadChan(conn, bufSize)
 	buf.Reset()
 	for {
@@ -83,7 +86,7 @@ func main() {
 				"application/octet-stream",
 				req)
 			if err != nil {
-				log.Println(err.String())
+				log.Println(err.Error())
 				continue
 			}
 			// write http response response to conn
