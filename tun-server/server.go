@@ -2,17 +2,17 @@ package main
 
 import (
 	"flag"
-	"http"
 	"io"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net"
-	"os"
-	"rand"
+	"net/http"
+	"time"
 )
 
 const (
-	readTimeout = 100e6
+	readTimeout = 100
 	keyLen      = 64
 )
 
@@ -28,14 +28,14 @@ type proxyPacket struct {
 	done chan bool
 }
 
-func NewProxy(key, destAddr string) (p *proxy, err os.Error) {
+func NewProxy(key, destAddr string) (p *proxy, err error) {
 	p = &proxy{C: make(chan proxyPacket), key: key}
 	log.Println("Attempting connect", destAddr)
 	p.conn, err = net.Dial("tcp", destAddr)
 	if err != nil {
 		return
 	}
-	p.conn.SetReadTimeout(readTimeout)
+	p.conn.SetReadDeadline(time.Now().Add(time.Millisecond*readTimeout))
 	log.Println("ResponseWriterected", destAddr)
 	return
 }
@@ -44,7 +44,7 @@ func (p *proxy) handle(pp proxyPacket) {
 	// read from the request body and write to the ResponseWriter
 	_, err := io.Copy(p.conn, pp.r.Body)
 	pp.r.Body.Close()
-	if err == os.EOF {
+	if err == io.EOF {
 		p.conn = nil
 		log.Println("eof", p.key)
 		return
